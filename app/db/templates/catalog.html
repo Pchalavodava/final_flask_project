@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Catalog{% endblock %}
+
+
+{% block content %}
+<div class="d-flex flex-column">
+    <h2 class="text-center">
+        {% if selected_genre %}
+        <span>{{ selected_genre }}</span>
+        {% elif searching_book %}
+        <span>{{ searching_book|capitalize }}</span>
+        {% else %}
+        <span>All books</span>
+        {% endif %}
+    </h2>
+    {% if not books %}
+    <div class="text-center">
+        <h5>0 results</h5>
+    </div>
+    {% endif %}
+    <div class="row row-cols-3">
+        {% for book in books %}
+        <a class="text-decoration-none" href="{{ url_for('main.show_book', book_id=book.id) }}">
+        <div class="col align-items-center card mb-3 p-3">
+            <img src="{{ url_for('static', filename='images/3.png')}}" alt="" width="150">
+            <h5>{{ book.title }}</h5>
+            <p>{{ book.author }}</p>
+            <p>{{ book.genre }}</p>
+        </div>
+        </a>
+        {% endfor %}
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+<html>
+<head>
+    <title>
+        {% block title %}Book store{% endblock %}
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+          rel="stylesheet"/>
+</head>
+<body class="bg-light">
+
+<nav id="nav-menu">
+    <div class="d-flex justify-content-between">
+        {% if request.path == '/' or request.path == '/catalog' %}
+        <form action="{{ url_for('main.show_catalog') }}" method="POST" class="d-flex input-group w-25 m-0 p-3 gap-2">
+            {{ form.hidden_tag() }}
+            {{ form.query(class='form-control', placeholder='search')}}
+            {{ form.submit(class='btn-light input-group-text')}}
+        </form>
+        {% endif %}
+
+        <div class="d-flex justify-content-end p-3 w-100 gap-1">
+            {% if request.path != '/' %}
+            <a href="{{ url_for('main.main_route') }}" class="btn btn-dark">Back to main page</a>
+            {% endif %}
+
+            {% if request.path != '/login' and request.path != '/register' %}
+
+            {% if current_user.is_authenticated %}
+            <a href="" class="btn btn-light">Orders</a>
+            <a class="btn btn-light">
+                <img src="{{ url_for('static', filename='images/basket.png')}}" alt="" width="30">
+            </a>
+            <a href="{{ url_for('main.logout') }}" class="btn btn-danger">Logout</a>
+
+            {% else %}
+
+            <a href="{{ url_for('main.login') }}" class="btn btn-light">Login</a>
+            <a href="{{ url_for('main.register') }}" class="btn btn-light">Register</a>
+
+            {% endif %}
+
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<div class="container d-flex justify-content-center align-items-center">
+    <!--    <div class="card p-4 w-50 mw-30">-->
+    {% block content %}{% endblock %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+    <!--    </div>-->
+</div>
+
+<footer>
+    <div class="card d-flex flex-row justify-content-center gap-5">
+        <div class="">Contact us</div>
+        <div class="">Payment methods</div>
+        <div class="">Delivery methods</div>
+    </div>
+</footer>
+
+</body>
+</html>
