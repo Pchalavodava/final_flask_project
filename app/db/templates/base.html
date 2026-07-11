@@ -27,7 +27,12 @@
 
             {% if current_user.is_authenticated %}
             <a href="" class="btn btn-light">Orders</a>
-            <a class="btn btn-light">
+<!--            <form action="{{ url_for('main.show_basket', user_id=current_user.id)}}" class="mt-3">-->
+<!--                <button type="submit" class="btn btn-light">-->
+<!--                    <img src="{{ url_for('static', filename='images/basket.png') }}" alt="" width="30">-->
+<!--                </button>-->
+<!--            </form>-->
+            <a href="{{ url_for('main.show_basket')}}" class="btn btn-light">
                 <img src="{{ url_for('static', filename='images/basket.png')}}" alt="" width="30">
             </a>
             <a href="{{ url_for('main.logout') }}" class="btn btn-danger">Logout</a>
@@ -45,7 +50,6 @@
 </nav>
 
 <div class="container d-flex justify-content-center align-items-center">
-    <!--    <div class="card p-4 w-50 mw-30">-->
     {% block content %}{% endblock %}
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -54,7 +58,6 @@
     {% endfor %}
     {% endif %}
     {% endwith %}
-    <!--    </div>-->
 </div>
 
 <footer>

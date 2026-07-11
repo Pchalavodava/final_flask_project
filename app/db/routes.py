@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, redirect, render_template, url_for, request
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf import FlaskForm
-from wtforms import PasswordField, StringField, SubmitField
+from wtforms import PasswordField, StringField, SubmitField, SelectMultipleField
 from wtforms.validators import Email, EqualTo, InputRequired, Length
 
 from app.db.database import session_scope
@@ -34,6 +34,10 @@ class SearchForm(FlaskForm):
 
 class AddToCartForm(FlaskForm):
     submit = SubmitField('AddToCart')
+
+
+class ItemForm(FlaskForm):
+    select_item = SelectMultipleField()
 
 
 @main_blueprint.route('/register', methods=['GET', 'POST'])
@@ -172,10 +176,33 @@ def show_book(book_id):
             count = sum(item.amount for item in cart_items)
     return render_template('specific_book.html', book=book, form=form, count=count)
 
-    # with session_scope() as session:
-    #     book = None
-    #     if book_id:
-    #         book = session.query(Book).filter(Book.id == book_id).first()
-    #         if book:
-    #             session.expunge(book)
-    # return render_template('specific_book.html', book=book, form=form)
+
+@main_blueprint.route('/checkouts', methods=['GET', 'POST'])
+def show_basket():
+    total_price = 0
+    basket = []
+
+    with session_scope() as session:
+        if current_user:
+            cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
+                CartItem.user_id == current_user.id).all()
+            for cart_item, book in cart_items:
+                session.expunge(cart_item)
+                session.expunge(book)
+                basket.append({
+                    'amount': cart_item.amount,
+                    'title': book.title,
+                    'author': book.author,
+                    'price': book.price,
+                    'book_id': book.id
+                })
+    form = ItemForm()
+    form.select_item.choices = [(str(item['book_id']), item['title']) for item in basket]
+    if form.validate_on_submit():
+        selected_book = form.select_item.data
+        if selected_book:
+            book_id = [int(item_id) for item_id in selected_book]
+            total_price = round(sum(item['price'] * item['amount'] for item in basket if item['book_id'] in book_id), 2)
+    else:
+        form.select_item.data = []
+    return render_template('cart_items.html', form=form, basket=basket, total_price=total_price)

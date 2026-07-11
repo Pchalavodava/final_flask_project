@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Basket{% endblock %}
+
+{% block content %}
+<form action="{{ url_for('main.show_basket')}}" method="POST">
+    {{ form.hidden_tag() }}
+    <div class="d-flex flex-column">
+        <div class="card p-3">
+            <span>Total price: {{ total_price }}</span>
+            <a class="btn btn-primary" href="">Checkout</a>
+        </div>
+        <div class="row row-cols-2">
+            {% for item in basket %}
+            <div class="card d-flex flex-row mb-3 p-3 justify-content-center">
+                <input class="w-10" type="checkbox" name="select_item" value="{{ item.book_id }}" onchange="this.form.submit()"
+                       {% if form.select_item.data and item.book_id|string in form.select_item.data %}checked{% endif %}>
+                <div class="text-center">
+                    <img src="{{ url_for('static', filename='images/2.png')}}" width=50 alt="">
+                    <p>{{ item.title }}</p>
+                    <p>{{ item.author }}</p>
+                    <p>Price: {{ item.price }}</p>
+                    <p>Amount {{ item.amount }}</p>
+                    <p>Total: {{ item.amount * item.price }}</p>
+                    <a class="btn btn-danger" href="">Delete item</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</form>
+{% endblock %}
