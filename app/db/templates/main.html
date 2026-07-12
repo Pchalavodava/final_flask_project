@@ -10,7 +10,7 @@
             our bookstore{% endif %}!</h2>
     </div>
     <div class="d-flex flex-row gap-4">
-        <div>
+        <div class="card card-body" style="border: None; background: transparent;">
             <h2 class="text-center">TOP 3</h2>
 
             {% for book in books %}
@@ -31,7 +31,7 @@
             {% endfor %}
         </div>
 
-        <div class="card card-body text-center" style="width: 18rem;">
+        <div class="card card-body text-center" style="height: fit-content;">
             <h3 class="card-title">Genre</h3>
             <ul class="list-group list-group-flush">
                 {% for book in genres %}

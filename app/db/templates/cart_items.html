@@ -2,31 +2,70 @@
 {% block title %}Basket{% endblock %}
 
 {% block content %}
+
 <form action="{{ url_for('main.show_basket')}}" method="POST">
     {{ form.hidden_tag() }}
-    <div class="d-flex flex-column">
-        <div class="card p-3">
-            <span>Total price: {{ total_price }}</span>
-            <a class="btn btn-primary" href="">Checkout</a>
+
+    <div class="card p-3 mb-3">
+        <div class="d-flex flex-column align-items-center">
+            <div>
+                <label>Select all
+                    <input type="checkbox" name="all_items" id="select-all">
+                </label>
+            </div>
+            <div class="d-flex flex-column">
+                <span>Total price: {{ total_price }}</span>
+                <a class="btn btn-primary" href="">Checkout</a>
+            </div>
         </div>
-        <div class="row row-cols-2">
-            {% for item in basket %}
-            <div class="card d-flex flex-row mb-3 p-3 justify-content-center">
-                <input class="w-10" type="checkbox" name="select_item" value="{{ item.book_id }}" onchange="this.form.submit()"
-                       {% if form.select_item.data and item.book_id|string in form.select_item.data %}checked{% endif %}>
+    </div>
+
+    {% for item in basket %}
+    <div class="card mb-3 p-3">
+
+        <div class="d-flex align-items-center justify-content-between">
+
+            <div class="d-flex align-items-center gap-3">
+
+                <input class="book-checkbox" type="checkbox" name="select_item" value="{{ item.book_id }}"
+                       onchange="this.form.submit()"
+                       {% if form.select_item.data and item.book_id|string in form.select_item.data %}checked{% endif
+                       %}>
+                <img src="{{ url_for('static', filename='images/2.png')}}" width=60 alt="">
+
                 <div class="text-center">
-                    <img src="{{ url_for('static', filename='images/2.png')}}" width=50 alt="">
-                    <p>{{ item.title }}</p>
-                    <p>{{ item.author }}</p>
-                    <p>Price: {{ item.price }}</p>
-                    <p>Amount {{ item.amount }}</p>
-                    <p>Total: {{ item.amount * item.price }}</p>
-                    <a class="btn btn-danger" href="">Delete item</a>
+                    <p class="mb-1">{{ item.title }}</p>
+                    <p class="mb-1">{{ item.author }}</p>
+                    <p class="mb-1">Price: {{ item.price }}</p>
+                    <p class="mb-1">Amount {{ item.amount }}</p>
+                    <p class="mb-1">Total: {{ item.amount * item.price }}</p>
                 </div>
             </div>
-            {% endfor %}
-        </div>
 
+            <button
+                    class="btn btn-danger"
+                    type="submit"
+                    formaction="{{ url_for('main.delete_from_basket', book_id=item.book_id) }}"
+                    formmethod="POST">
+                Delete
+            </button>
+        </div>
     </div>
+    {% endfor %}
 </form>
+
+<script>
+    let selectAll = document.getElementById('select-all');
+    let checkboxes = document.querySelectorAll('.book-checkbox');
+    selectAll.addEventListener('change', function() {
+
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = document.getElementById('select-all').checked;
+        });
+
+        this.form.submit();
+    });
+
+</script>
+
 {% endblock %}

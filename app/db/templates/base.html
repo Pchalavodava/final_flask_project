@@ -6,7 +6,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
           rel="stylesheet"/>
 </head>
-<body class="bg-light">
+<body class="bg-light d-flex flex-column min-vh-100">
 
 <nav id="nav-menu">
     <div class="d-flex justify-content-between">
@@ -18,23 +18,21 @@
         </form>
         {% endif %}
 
-        <div class="d-flex justify-content-end p-3 w-100 gap-1">
+        <div class="d-flex justify-content-end align-items-center p-3 w-100 gap-1">
             {% if request.path != '/' %}
-            <a href="{{ url_for('main.main_route') }}" class="btn btn-dark">Back to main page</a>
+            <a href="{{ url_for('main.main_route') }}" class="btn btn-dark text-center">Back to main page</a>
             {% endif %}
 
             {% if request.path != '/login' and request.path != '/register' %}
 
             {% if current_user.is_authenticated %}
             <a href="" class="btn btn-light">Orders</a>
-<!--            <form action="{{ url_for('main.show_basket', user_id=current_user.id)}}" class="mt-3">-->
-<!--                <button type="submit" class="btn btn-light">-->
-<!--                    <img src="{{ url_for('static', filename='images/basket.png') }}" alt="" width="30">-->
-<!--                </button>-->
-<!--            </form>-->
-            <a href="{{ url_for('main.show_basket')}}" class="btn btn-light">
-                <img src="{{ url_for('static', filename='images/basket.png')}}" alt="" width="30">
-            </a>
+            <div class="d-flex flex-row justify-content-center card" style="max-width: 100px;">
+                <a href="{{ url_for('main.show_basket')}}" class="btn btn-light">
+                    <img src="{{ url_for('static', filename='images/basket.png')}}" alt="" width="30">
+                </a>
+                <input type="text" value="{{ count }}" class="form-control-plaintext text-center" disabled>
+            </div>
             <a href="{{ url_for('main.logout') }}" class="btn btn-danger">Logout</a>
 
             {% else %}
@@ -45,11 +43,12 @@
             {% endif %}
 
             {% endif %}
+
         </div>
     </div>
 </nav>
-
-<div class="container d-flex justify-content-center align-items-center">
+<main class="container flex-grow-1">
+    <!--    <div class="container d-flex justify-content-center align-items-center">-->
     {% block content %}{% endblock %}
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -58,13 +57,29 @@
     {% endfor %}
     {% endif %}
     {% endwith %}
-</div>
-
-<footer>
+    <!--    </div>-->
+</main>
+<footer class="mt-auto">
     <div class="card d-flex flex-row justify-content-center gap-5">
-        <div class="">Contact us</div>
-        <div class="">Payment methods</div>
-        <div class="">Delivery methods</div>
+        <div class="">
+            <span>Contact us: </span>
+        </div>
+        <div>|</div>
+        <div class="d-flex flex-row gap-1">
+            <span>Payment methods: </span>
+            {% for payment_method in logos_list('payments') %}
+            <img class="" src="{{ url_for('static', filename='images/payments/'  ~ payment_method)}}" alt=""
+                 style="max-width: 25px;">
+            {% endfor %}
+        </div>
+        <div>|</div>
+        <div class="d-flex flex-row gap-1">
+            <span>Delivery methods: </span>
+            {% for delivery_method in logos_list('delivery') %}
+            <img class="" src="{{ url_for('static', filename='images/delivery/'  ~ delivery_method)}}" alt=""
+                 style="max-width: 25px;">
+            {% endfor %}
+        </div>
     </div>
 </footer>
 
