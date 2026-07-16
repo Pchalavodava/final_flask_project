@@ -15,7 +15,8 @@
             </div>
             <div class="d-flex flex-column">
                 <span>Total price: {{ total_price }}</span>
-                <a class="btn btn-primary" href="">Checkout</a>
+<!--                <a class="btn btn-primary" href="{{ url_for('main.go_to_order')}}">Checkout</a>-->
+                <button class="btn btn-primary" type="submit" formaction="{{ url_for('main.go_to_order')}}" formmethod="POST">Checkout</button>
             </div>
         </div>
     </div>

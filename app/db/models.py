@@ -58,7 +58,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(20))
     address: Mapped[str] = mapped_column(String(100))
 
-    book_list: Mapped[list['OrderItem']] = relationship(back_populates='order')
+    order_items: Mapped[list['OrderItem']] = relationship(back_populates='order')
     user: Mapped['User'] = relationship(back_populates='orders')
 
 
@@ -70,7 +70,7 @@ class OrderItem(Base):
     quantity: Mapped[int]
     price: Mapped[int]
 
-    order: Mapped['Order'] = relationship(back_populates='book_list')
+    order: Mapped['Order'] = relationship(back_populates='order_items')
     book: Mapped['Book'] = relationship(back_populates='order_items')
 
 

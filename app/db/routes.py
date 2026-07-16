@@ -1,4 +1,5 @@
 import os.path
+from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, url_for, request
 from flask_login import current_user, login_required, login_user, logout_user
@@ -7,7 +8,7 @@ from wtforms import PasswordField, StringField, SubmitField, SelectMultipleField
 from wtforms.validators import Email, EqualTo, InputRequired, Length
 
 from app.db.database import session_scope
-from app.db.models import User, Book, CartItem
+from app.db.models import User, Book, CartItem, OrderItem, Order
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -39,7 +40,6 @@ class AddToCartForm(FlaskForm):
 
 
 class ItemForm(FlaskForm):
-    # select_item = SelectMultipleField()
     select_item = MultipleFileField()
 
 
@@ -109,6 +109,7 @@ def show_icons():
             logos = os.listdir(logos_dir)
             logos_list = [img for img in logos]
         return logos_list
+
     return dict(logos_list=get_logos)
 
 
@@ -209,7 +210,7 @@ def show_book(book_id):
     return render_template('specific_book.html', book=book, form=form, count=count, cart_dict=cart_dict)
 
 
-@main_blueprint.route('/checkouts', methods=['GET', 'POST'])
+@main_blueprint.route('/basket', methods=['GET', 'POST'])
 def show_basket():
     total_price = 0
     basket = []
@@ -219,7 +220,6 @@ def show_basket():
         cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
             CartItem.user_id == current_user.id).all()
         for cart_item, book in cart_items:
-            # session.expunge(cart_item)
             session.expunge(book)
             basket.append({
                 'amount': cart_item.amount,
@@ -228,6 +228,7 @@ def show_basket():
                 'price': book.price,
                 'book_id': book.id
             })
+
     form = ItemForm()
 
     if request.method == 'POST':
@@ -240,10 +241,63 @@ def show_basket():
     return render_template('cart_items.html', form=form, basket=basket, total_price=total_price, count=count)
 
 
-@main_blueprint.route('/checkouts/delete/<int:book_id>', methods=['POST'])
+@main_blueprint.route('/basket/delete/<int:book_id>', methods=['POST'])
 def delete_from_basket(book_id):
     with session_scope() as session:
         cart_item = session.query(CartItem).filter_by(user_id=current_user.id, book_id=book_id).first()
         if cart_item:
             session.delete(cart_item)
     return redirect(url_for('main.show_basket'))
+
+
+@main_blueprint.route('/checkout', methods=['POST'])
+def go_to_order():
+    selected_books = request.form.getlist('select_item')
+    if request.method == 'POST':
+        selected_books_id = [int(book) for book in selected_books]
+        with session_scope() as session:
+            cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
+                CartItem.user_id == current_user.id, CartItem.book_id.in_(selected_books_id)).all()
+
+            existing_order = session.query(Order).filter(Order.status == 'new',
+                                                         Order.user_id == current_user.id).first()
+
+            if existing_order:
+                order = existing_order
+            else:
+                order = Order(
+                    user_id=current_user.id,
+                    date=datetime.now(),
+                    status='new',
+                    address=''
+                )
+            session.add(order)
+
+            for cart_item, book in cart_items:
+                order_item = OrderItem(
+                    book=book,
+                    quantity=cart_item.amount,
+                    price=cart_item.amount * book.price
+                )
+                order.order_items.append(order_item)
+                session.delete(cart_item)
+            session.flush()
+            order_id = order.id
+            books_to_order = session.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+
+            order_books = []
+
+            for book_to_order in books_to_order:
+                order_books.append({
+                    "title": book_to_order.book.title,
+                    "author": book_to_order.book.author,
+                    "quantity": book_to_order.quantity,
+                    "price": book_to_order.price,
+                    "total_book": book_to_order.price * book_to_order.quantity,
+                })
+
+            total_price = sum(book['total_book'] for book in order_books)
+            print(total_price)
+            print(order_books)
+    return render_template('order.html', order_books=order_books, order_number=order_id,
+                           total_price=total_price)
