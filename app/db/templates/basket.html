@@ -2,21 +2,24 @@
 {% block title %}Basket{% endblock %}
 
 {% block content %}
-
+<h2 class="text-center">My basket</h2>
 <form action="{{ url_for('main.show_basket')}}" method="POST">
     {{ form.hidden_tag() }}
 
-    <div class="card p-3 mb-3">
+    <div class="card p-3 mb-3 d-flex flex-column text-center">
         <div class="d-flex flex-column align-items-center">
             <div>
                 <label>Select all
-                    <input type="checkbox" name="all_items" id="select-all">
+                    <input type="checkbox" name="all_items" id="select-all" {% if all_selected %}checked{% endif %}>
                 </label>
             </div>
-            <div class="d-flex flex-column">
+            <div class="d-flex flex-column gap-1">
                 <span>Total price: {{ total_price }}</span>
-<!--                <a class="btn btn-primary" href="{{ url_for('main.go_to_order')}}">Checkout</a>-->
-                <button class="btn btn-primary" type="submit" formaction="{{ url_for('main.go_to_order')}}" formmethod="POST">Checkout</button>
+                <span>Amount: {{ total_amount }}</span>
+                <button class="btn btn-primary" type="submit" formaction="{{ url_for('main.complete_the_order')}}"
+                        formmethod="POST" style="display: {% if total_price == 0 %}none{% else %}block{% endif %};">
+                    Checkout
+                </button>
             </div>
         </div>
     </div>
@@ -29,16 +32,16 @@
             <div class="d-flex align-items-center gap-3">
 
                 <input class="book-checkbox" type="checkbox" name="select_item" value="{{ item.book_id }}"
-                       onchange="this.form.submit()"
-                       {% if form.select_item.data and item.book_id|string in form.select_item.data %}checked{% endif
-                       %}>
+                       onchange="this.form.submit()" {% if form.select_item.data and item.book_id|string in
+                       form.select_item.data %}checked{% endif%}>
                 <img src="{{ url_for('static', filename='images/2.png')}}" width=60 alt="">
 
                 <div class="text-center">
                     <p class="mb-1">{{ item.title }}</p>
                     <p class="mb-1">{{ item.author }}</p>
                     <p class="mb-1">Price: {{ item.price }}</p>
-                    <p class="mb-1">Amount {{ item.amount }}</p>
+                    <p class="mb-1">Amount: <input type="number" value="{{ item.amount }}" class="amount"
+                                                   style="border: none; max-width: 40px;"></p>
                     <p class="mb-1">Total: {{ item.amount * item.price }}</p>
                 </div>
             </div>
@@ -55,18 +58,29 @@
     {% endfor %}
 </form>
 
+{% if order %}
+<div class="d-flex flex-row justify-content-center">
+    <p class="">Order: {{ order.id }}</p>
+    <a class="btn btn-light" href="{{ url_for('main.current_order') }}">
+        Complete
+    </a>
+</div>
+{% endif %}
+
+
 <script>
     let selectAll = document.getElementById('select-all');
     let checkboxes = document.querySelectorAll('.book-checkbox');
-    selectAll.addEventListener('change', function() {
 
+    if (checkboxes.length > 0) {
+        selectAll.checked = [...checkboxes].every(checkbox => checkbox.checked);
+    }
+    selectAll.addEventListener('change', function() {
         checkboxes.forEach(function(checkbox) {
             checkbox.checked = document.getElementById('select-all').checked;
         });
-
         this.form.submit();
     });
-
 </script>
 
 {% endblock %}

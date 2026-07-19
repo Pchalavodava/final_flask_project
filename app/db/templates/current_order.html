@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<h3 class="text-center">Order <strong>{{ order_number }}</strong></h3>
+<div class="d-flex flex-row gap-1 justify-content-center">
+    <div class="card d-flex">
+        {% for book in order_books %}
+        <div class=" col card d-flex align-items-center m-3 p-2">
+            <p class="m-0"><strong>{{ book.title }}</strong></p>
+            <p class="m-0">{{ book.author }}</p>
+            <p class="m-0"><strong>Quantity:</strong> {{ book.quantity }}</p>
+            <p class="m-0" style="font-size: 12px"><strong>Price:</strong> {{ book.price }}</p>
+            <p class="m-0"><strong>Total:</strong> {{ book.total_book }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    <form action="{{ url_for('main.to_pay', order_id=order_number) }}" method="POST">
+        <div class="card">
+            <div class="input-group input-group-sm mb-3">
+                <input type="text" class="form-control text-center" aria-describedby="first-name" required>
+                <span class="input-group-text" id="first-name">First name</span>
+            </div>
+            <div class="input-group input-group-sm mb-3">
+                <input type="text" class="form-control text-center" aria-describedby="surname" required>
+                <span class="input-group-text" id="surname">Surname</span>
+            </div>
+            <div class="input-group input-group-sm mb-3">
+                <input type="text" class="form-control text-center" aria-describedby="phone-number" value="{{ user }}"
+                       required>
+                <span class="input-group-text" id="phone-number">Phone number</span>
+            </div>
+            <select class="form-select mb-3 text-center" id="delivery_method" name="delivery_method">
+                <option selected disabled>Choose delivery method</option>
+                <option value="pickup">Pick up in shop</option>
+                <option value="home">Home delivery</option>
+            </select>
+            <div class="input-group input-group-sm mb-3">
+                <input type="text" id="input_address" name="address" class="form-control text-center"
+                       aria-describedby="address" required>
+                <span class="input-group-text" id="address">Address</span>
+            </div>
+
+            <select class="form-select mb-3 text-center" name="payment_method">
+                <option selected disabled>Choose payment method</option>
+                <option>Apple Pay</option>
+                <option>Google Pay</option>
+                <option>Visa</option>
+                <option>Mastercard</option>
+                <option>Maestro</option>
+            </select>
+            <div class="text-center">
+                <h4><strong>Total price:</strong> {{ total_price }}</h4>
+            </div>
+            <div class="text-center">
+                <p>Delivery date: <span>{{ delivery_date.strftime('%d.%m.%Y') }}</span></p>
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="btn btn-info">Confirm</button>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+
+<script>
+    let address = document.getElementById('input_address')
+    let deliveryMethods = document.getElementById('delivery_method')
+    deliveryMethods.addEventListener('change', function() {
+        if (this.value === 'pickup') {
+            address.value = 'Some address to my book store';
+            address.readOnly = true;
+        } else {
+            address.value = '';
+            address.readOnly = false;
+            }})
+</script>
+{% endblock %}

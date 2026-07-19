@@ -1,5 +1,5 @@
 import os.path
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, flash, redirect, render_template, url_for, request
 from flask_login import current_user, login_required, login_user, logout_user
@@ -45,6 +45,10 @@ class ItemForm(FlaskForm):
 
 class DeleteFromBasket(FlaskForm):
     delete_item = SubmitField('Delete')
+
+
+# class DeliveryForm(FlaskForm):
+#     address = StringField('Address', validators=[InputRequired()])
 
 
 def basket_calculating():
@@ -164,7 +168,7 @@ def show_catalog():
                         searching in book.title.casefold()
                         or searching in book.author.casefold()
                         or searching in book.genre.casefold()
-                        or (Book.description and searching in book.description.casefold())
+                        or (book.description and searching in book.description.casefold())
                 )
             ]
         for book in books:
@@ -196,29 +200,32 @@ def show_book(book_id):
         return redirect(url_for('main.show_book', book_id=book_id))
 
     with session_scope() as session:
-        count = 0
         book = None
         if book_id:
             book = session.query(Book).filter(Book.id == book_id).first()
             if book:
                 session.expunge(book)
+        cart_dict = {}
         if current_user.is_authenticated:
             cart_items = session.query(CartItem).filter_by(user_id=current_user.id).all()
-            # count = sum(item.amount for item in cart_items)
             cart_dict = {item.book_id: item.amount for item in cart_items}
     count = basket_calculating()
     return render_template('specific_book.html', book=book, form=form, count=count, cart_dict=cart_dict)
 
 
 @main_blueprint.route('/basket', methods=['GET', 'POST'])
+@login_required
 def show_basket():
     total_price = 0
     basket = []
 
     with session_scope() as session:
-        # if current_user.is_authenticated:
+        order = session.query(Order).filter(Order.user_id == current_user.id, Order.status == 'new').first()
+        if order:
+            session.expunge(order)
         cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
             CartItem.user_id == current_user.id).all()
+
         for cart_item, book in cart_items:
             session.expunge(book)
             basket.append({
@@ -230,18 +237,35 @@ def show_basket():
             })
 
     form = ItemForm()
+    form.select_item.choices = [(str(item['book_id']), item['title']) for item in basket]
 
     if request.method == 'POST':
         selected_books = request.form.getlist('select_item')
-        selected_books = [int(book) for book in selected_books]
+        form.select_item.data = selected_books
 
-        total_price = round(sum(item['price'] * item['amount'] for item in basket if item['book_id'] in selected_books),
-                            2)
+        if selected_books:
+            selected_books = [int(book) for book in selected_books]
+            total_price = round(
+                sum(item['price'] * item['amount'] for item in basket if item['book_id'] in selected_books),
+                2
+            )
+            total_amount = sum(item['amount'] for item in basket if item['book_id'] in selected_books)
+        else:
+            total_price = 0
+            total_amount = 0
+    else:
+        total_price = 0
+        total_amount = 0
+        form.select_item.data = []
+
     count = basket_calculating()
-    return render_template('cart_items.html', form=form, basket=basket, total_price=total_price, count=count)
+
+    return render_template('basket.html', form=form, basket=basket, total_price=total_price, count=count,
+                           order=order, total_amount=total_amount)
 
 
 @main_blueprint.route('/basket/delete/<int:book_id>', methods=['POST'])
+@login_required
 def delete_from_basket(book_id):
     with session_scope() as session:
         cart_item = session.query(CartItem).filter_by(user_id=current_user.id, book_id=book_id).first()
@@ -250,54 +274,91 @@ def delete_from_basket(book_id):
     return redirect(url_for('main.show_basket'))
 
 
+@main_blueprint.route('/orders')
+@login_required
+def show_orders():
+    orders_list = []
+    with session_scope() as session:
+        orders = session.query(Order).filter(Order.user_id == current_user.id).all()
+        for order in orders:
+            orders_list.append(
+                {'order_id': order.id,
+                 'status': order.status,
+                 'date': order.date,
+                 'total_price': sum(item.price * item.quantity for item in order.order_items)}
+            )
+    count = basket_calculating()
+    return render_template('my_orders.html', orders_list=orders_list, count=count)
+
+
 @main_blueprint.route('/checkout', methods=['POST'])
-def go_to_order():
+@login_required
+def complete_the_order():
     selected_books = request.form.getlist('select_item')
-    if request.method == 'POST':
-        selected_books_id = [int(book) for book in selected_books]
-        with session_scope() as session:
-            cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
-                CartItem.user_id == current_user.id, CartItem.book_id.in_(selected_books_id)).all()
+    if not selected_books:
+        return redirect(url_for('main.show_basket'))
 
-            existing_order = session.query(Order).filter(Order.status == 'new',
-                                                         Order.user_id == current_user.id).first()
+    selected_books_id = [int(book) for book in selected_books]
+    with session_scope() as session:
 
-            if existing_order:
-                order = existing_order
-            else:
-                order = Order(
-                    user_id=current_user.id,
-                    date=datetime.now(),
-                    status='new',
-                    address=''
-                )
+        cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
+            CartItem.user_id == current_user.id, CartItem.book_id.in_(selected_books_id)).all()
+        if not cart_items:
+            return redirect(url_for('main.show_basket'))
+
+        order = session.query(Order).filter(Order.user_id == current_user.id, Order.status == 'new').first()
+        if not order:
+            order = Order(
+                user_id=current_user.id,
+                date=datetime.now(),
+                status='new',
+                address=''
+            )
+
             session.add(order)
-
-            for cart_item, book in cart_items:
-                order_item = OrderItem(
-                    book=book,
-                    quantity=cart_item.amount,
-                    price=cart_item.amount * book.price
-                )
-                order.order_items.append(order_item)
-                session.delete(cart_item)
             session.flush()
-            order_id = order.id
-            books_to_order = session.query(OrderItem).filter(OrderItem.order_id == order.id).all()
 
-            order_books = []
+        for cart_item, book in cart_items:
+            order_item = OrderItem(
+                book=book,
+                quantity=cart_item.amount,
+                price=cart_item.amount * book.price
+            )
 
-            for book_to_order in books_to_order:
-                order_books.append({
-                    "title": book_to_order.book.title,
-                    "author": book_to_order.book.author,
-                    "quantity": book_to_order.quantity,
-                    "price": book_to_order.price,
-                    "total_book": book_to_order.price * book_to_order.quantity,
-                })
+            order.order_items.append(order_item)
+            session.delete(cart_item)
+        session.flush()
+        order_id = order.id
+    return redirect(url_for('main.current_order', order_id=order_id))
 
-            total_price = sum(book['total_book'] for book in order_books)
-            print(total_price)
-            print(order_books)
-    return render_template('order.html', order_books=order_books, order_number=order_id,
-                           total_price=total_price)
+
+@main_blueprint.route('/checkout/current')
+def current_order():
+    with session_scope() as session:
+        order = session.query(Order).filter(Order.user_id == current_user.id, Order.status == 'new').first()
+        order_books = []
+        for item in order.order_items:
+            order_books.append({
+                "title": item.book.title,
+                "author": item.book.author,
+                "quantity": item.quantity,
+                "price": item.price,
+                "total_book": item.price * item.quantity,
+            })
+
+        total_price = sum(book["total_book"] for book in order_books)
+        delivery_date = order.date + timedelta(days=2)
+        user = order.user.phone_number
+        return render_template("current_order.html", order_books=order_books, order_number=order.id,
+                               total_price=total_price, delivery_date=delivery_date, user=user)
+
+
+@main_blueprint.route('/checkout/<int:order_id>/pay', methods=['POST'])
+@login_required
+def to_pay(order_id):
+    with session_scope() as session:
+        order = session.query(Order).filter(Order.id == order_id).first()
+        if order:
+            order.status = 'paid'
+            order.address = request.form.get('address')
+    return redirect(url_for('main.show_orders'))

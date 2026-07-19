@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Orders{% endblock %}
+
+{% block content %}
+<h2 class="text-center">My orders</h2>
+<div class="container text-center">
+    <div class="row row-cols-4" style="border: 1px solid black">
+        <div class="col">Order number</div>
+        <div class="col">Status</div>
+        <div class="col">Order date</div>
+        <div class="col">Total price</div>
+    </div>
+</div>
+
+{% for order in orders_list %}
+<div class="container text-center">
+    <div class="row row-cols-4">
+        <div class="col">{{ order['order_id'] }}</div>
+        <div class="col">{{ order['status'] }}</div>
+        <div class="col">{{ order['date'].strftime('%d.%m.%Y') }}</div>
+        <div class="col">{{ order['total_price'] }}</div>
+    </div>
+</div>
+
+{% endfor %}
+{% endblock %}
