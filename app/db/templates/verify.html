@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Regisrtation verify{% endblock %}
+
+{% block content %}
+<div class="container mt-5 text-center" style="max-width: 300px;">
+    <h4>Confirmation</h4>
+    <p class="text-muted">Enter code from SMS</p>
+
+    <form action="" method="POST">
+        <div class="mb-3">
+            <input type="text" name="sms_code" id="input-sms" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                   class="form-control text-center fs-4" required>
+        </div>
+        <button type="submit" class="btn btn-success w-100">Send</button>
+    </form>
+</div>
+
+<script>
+    inputSms = document.getElementById('input-sms');
+    setTimeout(function() {
+        inputSms.value = '{{ server_code }}' }, 3000)
+</script>
+{% endblock %}

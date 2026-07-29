@@ -11,7 +11,7 @@
 <nav id="nav-menu">
     <div class="d-flex justify-content-between">
         {% if request.path == '/' or request.path == '/catalog' %}
-        <form action="{{ url_for('main.show_catalog') }}" method="POST" class="d-flex input-group w-25 m-0 p-3 gap-2">
+        <form action="{{ url_for('main.show_catalog') }}" method="POST" class="d-flex input-group m-0 p-3 gap-2" style="width: 500px">
             {{ form.hidden_tag() }}
             {{ form.query(class='form-control', placeholder='search')}}
             {{ form.submit(class='btn-light input-group-text')}}
@@ -19,7 +19,8 @@
         {% endif %}
 
         <div class="d-flex justify-content-end align-items-center p-3 w-100 gap-1">
-            {% if request.path != '/' %}
+            {% set paths = ['/', '/login', '/register', '/login/verify', '/register/verify'] %}
+            {% if request.path not in paths %}
             <a href="{{ url_for('main.main_route') }}" class="btn btn-dark text-center">Back to main page</a>
             {% endif %}
 
@@ -36,23 +37,19 @@
                 </a>
                 <input type="text" value="{{ count }}" class="form-control-plaintext text-center" disabled>
             </div>
-            <a href="{{ url_for('main.logout') }}" class="btn btn-danger">Logout</a>
+            <a href="{{ url_for('main.logout') }}" onclick="return confirm('Are you sure you want to logout?');" class="btn btn-danger">Logout</a>
 
             {% else %}
 
-            <a href="{{ url_for('main.login') }}" class="btn btn-light">Login</a>
+            <a href="{{ url_for('main.login') }}" class="btn btn-success">Login</a>
             <a href="{{ url_for('main.register') }}" class="btn btn-light">Register</a>
 
             {% endif %}
-
             {% endif %}
-
         </div>
     </div>
 </nav>
 <main class="container flex-grow-1">
-    <!--    <div class="container d-flex justify-content-center align-items-center">-->
-    {% block content %}{% endblock %}
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, message in messages %}
@@ -60,16 +57,16 @@
     {% endfor %}
     {% endif %}
     {% endwith %}
-    <!--    </div>-->
+    {% block content %}{% endblock %}
 </main>
 <footer class="mt-auto">
     <div class="card d-flex flex-row justify-content-center gap-5">
         <div class="">
-            <span>Contact us: </span>
+            <span><span class="fw-bold">Contact us: </span>book-shop@info.com</span>
         </div>
         <div>|</div>
         <div class="d-flex flex-row gap-1">
-            <span>Payment methods: </span>
+            <span class="fw-bold">Payment methods: </span>
             {% for payment_method in logos_list('payments') %}
             <img class="" src="{{ url_for('static', filename='images/payments/'  ~ payment_method)}}" alt=""
                  style="max-width: 25px;">
@@ -77,7 +74,7 @@
         </div>
         <div>|</div>
         <div class="d-flex flex-row gap-1">
-            <span>Delivery methods: </span>
+            <span class="fw-bold">Delivery methods: </span>
             {% for delivery_method in logos_list('delivery') %}
             <img class="" src="{{ url_for('static', filename='images/delivery/'  ~ delivery_method)}}" alt=""
                  style="max-width: 25px;">

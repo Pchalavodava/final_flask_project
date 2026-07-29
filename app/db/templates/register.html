@@ -1,20 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Register{% endblock %}
-{% block
-    content %}
+{% block content %}
+<div class="container" style="width: 300px">
     <h2 class="text-center mb-4">Register</h2>
-    <form method="POST">
+    <form class="d-flex flex-column gap-1" method="POST">
         {{ form.hidden_tag() }}
-        <div class="mb-3">{{ form.username.label(class="form-label") }} {{ form.username(class="form-control") }}</div>
-        <div class="mb-3">{{ form.email.label(class="form-label") }} {{ form.email(class="form-control") }}</div>
-        <div class="mb-3">{{ form.password.label(class="form-label") }} {{ form.password(class="form-control") }}</div>
-        <div class="mb-3">
+        <div class="mb-1">{{ form.username.label(class="form-label") }} {{ form.username(class="form-control") }}</div>
+        <div class="mb-1">{{ form.email.label(class="form-label") }} {{ form.email(class="form-control") }}</div>
+        <div class="mb-1">{{ form.password.label(class="form-label") }} {{ form.password(class="form-control") }}</div>
+        <div class="mb-1">
             {{ form.confirm_password.label(class="form-label") }} {{ form.confirm_password(class="form-control") }}
         </div>
-        <div class="mb-3">{{ form.phone_number.label(class="form-label") }} {{ form.phone_number(class="form-control") }}</div>
+        <div class="mb-1">{{ form.phone_number.label(class="form-label") }} {{ form.phone_number(class="form-control")
+            }}
+        </div>
         <button type="submit" class="btn btn-primary w-100">Register</button>
     </form>
     <p class="text-center">
         Already have an account? <a href="{{ url_for('main.login') }}">Login</a>
     </p>
+</div>
+
+
 {% endblock %}

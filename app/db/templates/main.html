@@ -2,7 +2,6 @@
 
 {% block title %}Book store{% endblock %}
 
-
 {% block content %}
 <div class="d-flex flex-column">
     <div>
@@ -32,15 +31,17 @@
         </div>
 
         <div class="card card-body text-center" style="height: fit-content;">
-            <h3 class="card-title">Genre</h3>
+            <h3 class="card-title">Genres</h3>
             <ul class="list-group list-group-flush">
                 {% for book in genres %}
 
-                <li class="list-group-item"><a href="{{ url_for('main.show_catalog', genre=book.genre) }}">{{ book.genre
+                <li class="list-group-item"><a href="{{ url_for('main.show_catalog', genre=book.genre) }}"
+                                               class="text-decoration-none">{{ book.genre
                     }}</a></li>
 
                 {% endfor %}
-                <li class="list-group-item"><a href="{{ url_for('main.show_catalog') }}">Show all</a></li>
+                <li class="list-group-item"><a href="{{ url_for('main.show_catalog') }}" class="text-decoration-none">Show
+                    all</a></li>
             </ul>
         </div>
     </div>

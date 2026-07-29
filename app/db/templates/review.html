@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Review{% endblock %}
+
+{% block content %}
+{% if not form.validate_on_submit() %}
+<div class="container" id="block-review">
+    <div class="text-center">
+        <h5>{{ book['title'] }}</h5>
+        <p>{{ book['author'] }}</p>
+        <p>{{ book['genre'] }}</p>
+        <p class="text-danger fw-bold">{{ book['rating'] }}☆</p>
+    </div>
+
+    <form action="{{ url_for('main.send_a_review', book_id=book.id)}}" method="POST">
+        {{ form.hidden_tag()}}
+        <div class="text-center d-flex flex-column gap-1 align-items-center">
+            <label>{{ form.review.label }}</label>
+            {{ form.review(class='form-control', style='width: 400px; height: 200px;')}}
+            <div class="d-flex flex-row gap-3">
+                {% for subfield in form.rating %}
+                <div class="d-flex flex-column align-items-center">
+                    {{ subfield() }}
+                    {{ subfield.label }}
+                </div>
+                {% endfor %}
+            </div>
+            {{ form.submit(class='btn btn-danger', id='send-button')}}
+        </div>
+    </form>
+</div>
+{% else %}
+<div class="container" id="block-sent-review">
+    <h4 class="text-center">Thank you for your review</h4>
+</div>
+{% endif %}
+
+{% endblock %}

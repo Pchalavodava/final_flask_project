@@ -3,7 +3,7 @@ from datetime import datetime
 from flask_login import UserMixin
 from typing import Optional
 
-from sqlalchemy import Integer, String, ForeignKey
+from sqlalchemy import Integer, String, ForeignKey, Float
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
 
 Base = declarative_base()
@@ -31,7 +31,7 @@ class Book(Base):
     genre: Mapped[str] = mapped_column(String(50))
     cover_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    rating: Mapped[Optional[float]] = mapped_column(Integer, nullable=True)
+    rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     cart_items: Mapped[list['CartItem']] = relationship(back_populates='book')
@@ -68,7 +68,7 @@ class OrderItem(Base):
     order_id: Mapped[int] = mapped_column(ForeignKey('orders.id'))
     book_id: Mapped[int] = mapped_column(ForeignKey('books.id'))
     quantity: Mapped[int]
-    price: Mapped[int]
+    price: Mapped[float]
 
     order: Mapped['Order'] = relationship(back_populates='order_items')
     book: Mapped['Book'] = relationship(back_populates='order_items')

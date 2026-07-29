@@ -1,14 +1,15 @@
 import os.path
+import random
 from datetime import datetime, timedelta
 
-from flask import Blueprint, flash, redirect, render_template, url_for, request
+from flask import Blueprint, flash, redirect, render_template, url_for, request, session as f_session
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf import FlaskForm
-from wtforms import PasswordField, StringField, SubmitField, SelectMultipleField, MultipleFileField
-from wtforms.validators import Email, EqualTo, InputRequired, Length
+from wtforms import PasswordField, StringField, SubmitField, TextAreaField, MultipleFileField, RadioField
+from wtforms.validators import Email, EqualTo, InputRequired, Length, DataRequired
 
 from app.db.database import session_scope
-from app.db.models import User, Book, CartItem, OrderItem, Order
+from app.db.models import User, Book, CartItem, OrderItem, Order, Review
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -47,8 +48,11 @@ class DeleteFromBasket(FlaskForm):
     delete_item = SubmitField('Delete')
 
 
-# class DeliveryForm(FlaskForm):
-#     address = StringField('Address', validators=[InputRequired()])
+class FeedbackForm(FlaskForm):
+    review = TextAreaField('Your review:', validators=[Length(max=400, message='You can write 400 symbols only')])
+    rating = RadioField(choices=[('1', '1☆'), ('2', '2☆'), ('3', '3☆'), ('4', '4☆'), ('5', '5☆')],
+                        validators=[DataRequired(message='Choose please')])
+    submit = SubmitField('Send a review')
 
 
 def basket_calculating():
@@ -74,24 +78,44 @@ def register():
             flash('User name already exists!', 'danger')
             return redirect(url_for('main.register'))
 
-        user = User(
-            username=form.username.data,
-            phone_number=form.phone_number.data,
-            email=form.email.data.lower().strip(),
-            password_hash=generate_password_hash(form.password.data)
-        )
-        with session_scope() as session:
-            session.add(user)
-        flash('Registration successful!', 'success')
-        return redirect(url_for('main.login'))
-    elif form.errors:
-        flash(form.errors, category='danger')
+        f_session['user_name'] = request.form.get('username')
+        f_session['phone_number'] = request.form.get('phone_number')
+        f_session['email'] = request.form.get('email')
+        f_session['password'] = request.form.get('password')
 
+        sms_code = random.randint(1000, 9999)
+        f_session['sms_code'] = sms_code
+        return redirect(url_for('main.verify_register'))
     return render_template('register.html', form=form)
 
 
+@main_blueprint.route('/register/verify', methods=['GET', 'POST'])
+def verify_register():
+    server_code = int(f_session.get('sms_code'))
+    if request.method == 'POST':
+        user_code = int(request.form.get('sms_code'))
+        if user_code == server_code:
+            with session_scope() as session:
+                user = User(
+                    username=f_session.get('user_name'),
+                    phone_number=f_session.get('phone_number'),
+                    email=f_session.get('email').lower().strip(),
+                    password_hash=generate_password_hash(f_session.get('password'))
+                )
+                session.add(user)
+            f_session.pop('user_name', None)
+            f_session.pop('phone_number', None)
+            f_session.pop('email', None)
+            f_session.pop('password', None)
+            f_session.pop('sms_code', None)
+            flash('Registration successful', 'success')
+            return redirect(url_for('main.login'))
+        else:
+            flash('Incorrect SMS-code. Try again', 'danger')
+    return render_template('verify.html', server_code=server_code)
+
+
 @main_blueprint.route('/', methods=['GET', 'POST'])
-# @login_required
 def main_route():
     form = SearchForm()
     with session_scope() as session:
@@ -125,18 +149,50 @@ def login():
             email = form.email.data.lower().strip()
             user = session.query(User).filter_by(email=email).first()
             if user and check_password_hash(user.password_hash, form.password.data):
-                user_id = user.id
-                login_user(user)
-                # login_user(user, remember=True)
-                return redirect(url_for('main.main_route'))
+                f_session['login_user_id'] = user.id
+                sms_code = random.randint(1000, 9999)
+                f_session['sms_code'] = sms_code
+            #     user_id = user.id
+            #     login_user(user)
+            #     # login_user(user, remember=True)
+            #     return redirect(url_for('main.main_route'))
+            # flash('Login failed', 'danger')
+            # sms_code = random.randint(1000, 9999)
+            # f_session['sms_code'] = sms_code
+                return redirect(url_for('main.verify_login'))
             flash('Login failed', 'danger')
+            return redirect(url_for('main.login'))
     return render_template('login.html', form=form)
+
+
+@main_blueprint.route('/login/verify', methods=['GET', 'POST'])
+def verify_login():
+    server_code = int(f_session.get('sms_code'))
+    if request.method == 'POST':
+        user_code = int(request.form.get('sms_code'))
+        if user_code == server_code:
+            with session_scope() as session:
+                user_id = f_session.get('login_user_id')
+                user = session.query(User).get(user_id)
+                if user:
+                    login_user(user)
+                    flash('Welcome', 'success')
+                    f_session.pop('sms_code', None)
+                    f_session.pop('login_user_id', None)
+                    return redirect(url_for('main.main_route'))
+                # else:
+                #     flash('', 'danger')
+                #     return redirect(url_for('main.login'))
+        else:
+            flash('Incorrect SMS-code. Try again', 'danger')
+    return render_template('verify.html', server_code=server_code)
 
 
 @main_blueprint.route('/logout')
 @login_required
 def logout():
     logout_user()
+    flash('Successfully logged out', 'success')
     return redirect(url_for('main.main_route'))
 
 
@@ -197,20 +253,42 @@ def show_book(book_id):
                     amount=1
                 )
                 session.add(cart_item)
+        flash('You have successfully added the book to your basket', 'success')
         return redirect(url_for('main.show_book', book_id=book_id))
-
+    book_dict = {}
+    cart_dict = {}
+    paid_books_id = []
+    rated_books_id = []
     with session_scope() as session:
         book = None
         if book_id:
             book = session.query(Book).filter(Book.id == book_id).first()
-            if book:
-                session.expunge(book)
-        cart_dict = {}
+        book_dict = {
+            'id': book.id,
+            'title': book.title,
+            'author': book.author,
+            'year': book.year,
+            'price': book.price,
+            'description': book.description,
+            'rating': book.rating
+        }
         if current_user.is_authenticated:
             cart_items = session.query(CartItem).filter_by(user_id=current_user.id).all()
             cart_dict = {item.book_id: item.amount for item in cart_items}
+
+            purchased_books = session.query(OrderItem).join(Order).filter(Order.user_id == current_user.id,
+                                                                          Order.status == 'paid').all()
+            paid_books_id = [purchased_book.book_id for purchased_book in purchased_books]
+
+            rated_books = session.query(Review).filter(Review.user_id == current_user.id).all()
+            rated_books_id = [rated_book.book_id for rated_book in rated_books]
+
+        if book and book in session:
+            session.expunge(book)
+
     count = basket_calculating()
-    return render_template('specific_book.html', book=book, form=form, count=count, cart_dict=cart_dict)
+    return render_template('specific_book.html', book=book_dict, form=form, count=count, cart_dict=cart_dict,
+                           paid_books_id=paid_books_id, rated_books_id=rated_books_id)
 
 
 @main_blueprint.route('/basket', methods=['GET', 'POST'])
@@ -271,6 +349,7 @@ def delete_from_basket(book_id):
         cart_item = session.query(CartItem).filter_by(user_id=current_user.id, book_id=book_id).first()
         if cart_item:
             session.delete(cart_item)
+    flash(f'Book {book_id} was successfully removed', 'danger')
     return redirect(url_for('main.show_basket'))
 
 
@@ -285,7 +364,7 @@ def show_orders():
                 {'order_id': order.id,
                  'status': order.status,
                  'date': order.date,
-                 'total_price': sum(item.price * item.quantity for item in order.order_items)}
+                 'total_price': round(sum(item.price * item.quantity for item in order.order_items), 2)}
             )
     count = basket_calculating()
     return render_template('my_orders.html', orders_list=orders_list, count=count)
@@ -356,9 +435,90 @@ def current_order():
 @main_blueprint.route('/checkout/<int:order_id>/pay', methods=['POST'])
 @login_required
 def to_pay(order_id):
+    order_number = ''
     with session_scope() as session:
         order = session.query(Order).filter(Order.id == order_id).first()
         if order:
             order.status = 'paid'
             order.address = request.form.get('address')
+            order_number = order.id
+    flash(f'Order №{order_number} has been paid', 'success')
     return redirect(url_for('main.show_orders'))
+
+
+@main_blueprint.route('/checkout/<int:order_id>/cancel')
+@login_required
+def cancel_order(order_id):
+    order_number = ''
+    with session_scope() as session:
+        order_to_delete = session.query(Order).filter(Order.id == order_id).first()
+        if order_to_delete:
+            order_to_delete.status = 'rejected'
+            order_number = order_to_delete.id
+    flash(f'Order №{order_number} has been rejected', 'danger')
+    return redirect(url_for('main.show_orders'))
+
+
+@main_blueprint.route('/review/<int:book_id>', methods=['GET', 'POST'])
+@login_required
+def write_a_review(book_id):
+    with session_scope() as session:
+        book = session.query(Book).filter(Book.id == book_id).first()
+        book = {
+            'id': book.id,
+            'title': book.title,
+            'author': book.author,
+            'genre': book.genre,
+            'rating': book.rating
+        }
+    form = FeedbackForm()
+    return render_template("review.html", book=book, form=form)
+
+
+@main_blueprint.route('/review/<int:book_id>/send', methods=['POST'])
+@login_required
+def send_a_review(book_id):
+    form = FeedbackForm()
+    book_data = None
+    with session_scope() as session:
+        book = session.query(Book).filter(Book.id == book_id).first()
+
+        if form.validate_on_submit():
+            review = Review(
+                review_text=form.review.data,
+                user_id=current_user.id,
+                book_id=book_id,
+                stars=int(form.rating.data)
+            )
+            session.add(review)
+            session.flush()
+
+            book_rating_count = session.query(func.count(Review.id)).filter(Review.book_id == book_id).scalar()
+            new_star = int(form.rating.data)
+            if book.rating and book_rating_count == 1:
+                book.rating = (book.rating + new_star) / (book_rating_count + 1)
+            elif book.rating and book_rating_count > 1:
+                total_rating_count = book_rating_count + 1
+                total_rating = book.rating * book_rating_count + new_star
+                book.rating = round(total_rating / total_rating_count, 1)
+            else:
+                book.rating = float(new_star)
+
+            book_data = {
+                'id': book.id,
+                'title': book.title,
+                'author': book.author,
+                'genre': book.genre,
+                'rating': book.rating
+            }
+            # session.expunge(book)
+            return render_template('review.html', book=book, form=form)
+        book_data = {
+            'id': book.id,
+            'title': book.title,
+            'author': book.author,
+            'genre': book.genre,
+            'rating': book.rating
+        }
+        # session.expunge(book)
+        return render_template("review.html", book=book_data, form=form)
