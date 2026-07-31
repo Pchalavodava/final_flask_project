@@ -13,7 +13,9 @@ from app.db.models import User, Book, CartItem, OrderItem, Order, Review
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from sqlalchemy import or_, func
+from sqlalchemy import func
+
+from app.calculatings import basket_calculating
 
 main_blueprint = Blueprint('main', __name__)
 
@@ -53,15 +55,6 @@ class FeedbackForm(FlaskForm):
     rating = RadioField(choices=[('1', '1☆'), ('2', '2☆'), ('3', '3☆'), ('4', '4☆'), ('5', '5☆')],
                         validators=[DataRequired(message='Choose please')])
     submit = SubmitField('Send a review')
-
-
-def basket_calculating():
-    with session_scope() as session:
-        count = 0
-        if current_user.is_authenticated:
-            cart_items = session.query(CartItem).filter_by(user_id=current_user.id).all()
-            count = sum(item.amount for item in cart_items)
-    return count
 
 
 @main_blueprint.route('/register', methods=['GET', 'POST'])
@@ -119,7 +112,9 @@ def verify_register():
 def main_route():
     form = SearchForm()
     with session_scope() as session:
-        books = session.query(Book).order_by(Book.rating.desc()).limit(3).all()
+        books = session.query(Book).filter(Book.in_top.is_(True)).all()
+        if not books:
+            books = session.query(Book).order_by(Book.rating.desc()).limit(3).all()
         for book in books:
             session.expunge(book)
         genres = session.query(Book.genre).distinct().order_by(Book.genre).all()
@@ -152,13 +147,6 @@ def login():
                 f_session['login_user_id'] = user.id
                 sms_code = random.randint(1000, 9999)
                 f_session['sms_code'] = sms_code
-            #     user_id = user.id
-            #     login_user(user)
-            #     # login_user(user, remember=True)
-            #     return redirect(url_for('main.main_route'))
-            # flash('Login failed', 'danger')
-            # sms_code = random.randint(1000, 9999)
-            # f_session['sms_code'] = sms_code
                 return redirect(url_for('main.verify_login'))
             flash('Login failed', 'danger')
             return redirect(url_for('main.login'))
@@ -180,9 +168,6 @@ def verify_login():
                     f_session.pop('sms_code', None)
                     f_session.pop('login_user_id', None)
                     return redirect(url_for('main.main_route'))
-                # else:
-                #     flash('', 'danger')
-                #     return redirect(url_for('main.login'))
         else:
             flash('Incorrect SMS-code. Try again', 'danger')
     return render_template('verify.html', server_code=server_code)
@@ -206,26 +191,21 @@ def show_catalog():
     selected_genre = request.args.get('genre')
 
     with session_scope() as session:
-
         genres = session.query(Book.genre).distinct().order_by(Book.genre).all()
         query = session.query(Book)
 
         if selected_genre:
             query = query.filter(Book.genre == selected_genre)
-
         books = query.all()
 
         if searching_book:
             searching = searching_book.casefold()
-
             books = [
                 book for book in books
-                if (
-                        searching in book.title.casefold()
-                        or searching in book.author.casefold()
-                        or searching in book.genre.casefold()
-                        or (book.description and searching in book.description.casefold())
-                )
+                if (searching in book.title.casefold()
+                    or searching in book.author.casefold()
+                    or searching in book.genre.casefold()
+                    or (book.description and searching in book.description.casefold()))
             ]
         for book in books:
             session.expunge(book)
@@ -247,11 +227,7 @@ def show_book(book_id):
             if item:
                 item.amount += 1
             else:
-                cart_item = CartItem(
-                    user_id=current_user.id,
-                    book_id=book_id,
-                    amount=1
-                )
+                cart_item = CartItem(user_id=current_user.id, book_id=book_id, amount=1)
                 session.add(cart_item)
         flash('You have successfully added the book to your basket', 'success')
         return redirect(url_for('main.show_book', book_id=book_id))
@@ -311,7 +287,8 @@ def show_basket():
                 'title': book.title,
                 'author': book.author,
                 'price': book.price,
-                'book_id': book.id
+                'book_id': book.id,
+                'book_image': book.cover_url
             })
 
     form = ItemForm()
@@ -320,13 +297,10 @@ def show_basket():
     if request.method == 'POST':
         selected_books = request.form.getlist('select_item')
         form.select_item.data = selected_books
-
         if selected_books:
             selected_books = [int(book) for book in selected_books]
             total_price = round(
-                sum(item['price'] * item['amount'] for item in basket if item['book_id'] in selected_books),
-                2
-            )
+                sum(item['price'] * item['amount'] for item in basket if item['book_id'] in selected_books), 2)
             total_amount = sum(item['amount'] for item in basket if item['book_id'] in selected_books)
         else:
             total_price = 0
@@ -379,21 +353,13 @@ def complete_the_order():
 
     selected_books_id = [int(book) for book in selected_books]
     with session_scope() as session:
-
         cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
             CartItem.user_id == current_user.id, CartItem.book_id.in_(selected_books_id)).all()
         if not cart_items:
             return redirect(url_for('main.show_basket'))
-
         order = session.query(Order).filter(Order.user_id == current_user.id, Order.status == 'new').first()
         if not order:
-            order = Order(
-                user_id=current_user.id,
-                date=datetime.now(),
-                status='new',
-                address=''
-            )
-
+            order = Order(user_id=current_user.id, date=datetime.now(), status='new', address='')
             session.add(order)
             session.flush()
 
@@ -403,7 +369,6 @@ def complete_the_order():
                 quantity=cart_item.amount,
                 price=cart_item.amount * book.price
             )
-
             order.order_items.append(order_item)
             session.delete(cart_item)
         session.flush()
@@ -424,7 +389,6 @@ def current_order():
                 "price": item.price,
                 "total_book": item.price * item.quantity,
             })
-
         total_price = sum(book["total_book"] for book in order_books)
         delivery_date = order.date + timedelta(days=2)
         user = order.user.phone_number
@@ -484,12 +448,8 @@ def send_a_review(book_id):
         book = session.query(Book).filter(Book.id == book_id).first()
 
         if form.validate_on_submit():
-            review = Review(
-                review_text=form.review.data,
-                user_id=current_user.id,
-                book_id=book_id,
-                stars=int(form.rating.data)
-            )
+            review = Review(review_text=form.review.data, user_id=current_user.id, book_id=book_id,
+                            stars=int(form.rating.data))
             session.add(review)
             session.flush()
 
@@ -503,7 +463,6 @@ def send_a_review(book_id):
                 book.rating = round(total_rating / total_rating_count, 1)
             else:
                 book.rating = float(new_star)
-
             book_data = {
                 'id': book.id,
                 'title': book.title,
@@ -511,7 +470,6 @@ def send_a_review(book_id):
                 'genre': book.genre,
                 'rating': book.rating
             }
-            # session.expunge(book)
             return render_template('review.html', book=book, form=form)
         book_data = {
             'id': book.id,
@@ -520,5 +478,4 @@ def send_a_review(book_id):
             'genre': book.genre,
             'rating': book.rating
         }
-        # session.expunge(book)
         return render_template("review.html", book=book_data, form=form)

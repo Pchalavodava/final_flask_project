@@ -2,11 +2,12 @@ from flask import Flask
 from flask_login import LoginManager
 
 from config import settings
-from app.db.database import init_db
 from app.db.models import User
 
 from app.db.routes import main_blueprint
 from app.db.database import session_scope
+
+from scheduler import scheduler
 
 app = Flask(__name__, template_folder='app/db/templates')
 app.config['SECRET_KEY'] = settings.SECRET_KEY
@@ -26,5 +27,5 @@ def load_user(user_id):
 
 
 if __name__ == '__main__':
-    init_db()
+    scheduler.start()
     app.run(port=settings.APP_PORT, debug=settings.DEBUG)

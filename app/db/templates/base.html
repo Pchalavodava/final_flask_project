@@ -68,7 +68,7 @@
         <div class="d-flex flex-row gap-1">
             <span class="fw-bold">Payment methods: </span>
             {% for payment_method in logos_list('payments') %}
-            <img class="" src="{{ url_for('static', filename='images/payments/'  ~ payment_method)}}" alt=""
+            <img class="" src="{{ url_for('static', filename='images/payments/'  ~ payment_method)}}" alt="payment method"
                  style="max-width: 25px;">
             {% endfor %}
         </div>
@@ -76,7 +76,7 @@
         <div class="d-flex flex-row gap-1">
             <span class="fw-bold">Delivery methods: </span>
             {% for delivery_method in logos_list('delivery') %}
-            <img class="" src="{{ url_for('static', filename='images/delivery/'  ~ delivery_method)}}" alt=""
+            <img class="" src="{{ url_for('static', filename='images/delivery/'  ~ delivery_method)}}" alt="delivery method"
                  style="max-width: 25px;">
             {% endfor %}
         </div>

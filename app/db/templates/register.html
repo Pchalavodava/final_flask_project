@@ -1,6 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Register{% endblock %}
+
+{% block title %}Registration{% endblock %}
+
 {% block content %}
+
 <div class="container" style="width: 300px">
     <h2 class="text-center mb-4">Register</h2>
     <form class="d-flex flex-column gap-1" method="POST">
@@ -20,6 +23,5 @@
         Already have an account? <a href="{{ url_for('main.login') }}">Login</a>
     </p>
 </div>
-
 
 {% endblock %}

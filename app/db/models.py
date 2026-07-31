@@ -3,10 +3,10 @@ from datetime import datetime
 from flask_login import UserMixin
 from typing import Optional
 
-from sqlalchemy import Integer, String, ForeignKey, Float
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
+from sqlalchemy import Integer, String, ForeignKey, Float, Boolean
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-Base = declarative_base()
+from app.db.database import Base
 
 
 class User(Base, UserMixin):
@@ -33,6 +33,7 @@ class Book(Base):
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    in_top: Mapped[bool] = mapped_column(Boolean, default=False, server_default='0')
 
     cart_items: Mapped[list['CartItem']] = relationship(back_populates='book')
     order_items: Mapped[list['OrderItem']] = relationship(back_populates='book')

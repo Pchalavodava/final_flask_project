@@ -12,13 +12,13 @@
         <div class="row g-3 justify-content-center">
             <div class="col-md-7">
                 {% for book in order_books %}
-                <div class=" col card d-flex align-items-center m-1 p-3">
-                    <p class="m-0"><strong>{{ book.title }}</strong></p>
-                    <p class="m-0">{{ book.author }}</p>
-                    <p class="m-0"><strong>Quantity:</strong> {{ book.quantity }}</p>
-                    <p class="m-0" style="font-size: 12px"><strong>Price:</strong> {{ book.price }}</p>
-                    <p class="m-0"><strong>Total:</strong> {{ book.total_book }}</p>
-                </div>
+                    <div class=" col card d-flex align-items-center m-1 p-3">
+                        <p class="m-0"><strong>{{ book.title }}</strong></p>
+                        <p class="m-0">{{ book.author }}</p>
+                        <p class="m-0"><strong>Quantity:</strong> {{ book.quantity }}</p>
+                        <p class="m-0" style="font-size: 12px"><strong>Price:</strong> {{ book.price }}</p>
+                        <p class="m-0"><strong>Total:</strong> {{ book.total_book }}</p>
+                    </div>
                 {% endfor %}
             </div>
             <div class="col-md-4">
@@ -33,8 +33,7 @@
                     </div>
                     <div class="input-group input-group-sm mb-3">
                         <input type="text" class="form-control text-center" aria-describedby="phone-number"
-                               value="{{ user }}"
-                               required>
+                               value="{{ user }}" required>
                         <span class="input-group-text" id="phone-number">Phone number</span>
                     </div>
                     <select class="form-select mb-3 text-center" id="delivery_method" name="delivery_method">
@@ -56,6 +55,7 @@
                         <option>Mastercard</option>
                         <option>Maestro</option>
                     </select>
+
                     <div class="text-center">
                         <h4><strong>Total price:</strong> {{ total_price }}</h4>
                     </div>
