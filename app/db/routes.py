@@ -377,6 +377,7 @@ def complete_the_order():
 
 
 @main_blueprint.route('/checkout/current')
+@login_required
 def current_order():
     with session_scope() as session:
         order = session.query(Order).filter(Order.user_id == current_user.id, Order.status == 'new').first()
@@ -387,9 +388,8 @@ def current_order():
                 "author": item.book.author,
                 "quantity": item.quantity,
                 "price": item.price,
-                "total_book": item.price * item.quantity,
             })
-        total_price = sum(book["total_book"] for book in order_books)
+        total_price = sum(book["price"] for book in order_books)
         delivery_date = order.date + timedelta(days=2)
         user = order.user.phone_number
         return render_template("current_order.html", order_books=order_books, order_number=order.id,
