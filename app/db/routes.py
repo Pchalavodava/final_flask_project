@@ -1,6 +1,7 @@
 import os.path
 import random
 from datetime import datetime, timedelta
+from flask import abort
 
 from flask import Blueprint, flash, redirect, render_template, url_for, request, session as f_session
 from flask_login import current_user, login_required, login_user, logout_user
@@ -402,10 +403,15 @@ def to_pay(order_id):
     order_number = ''
     with session_scope() as session:
         order = session.query(Order).filter(Order.id == order_id).first()
-        if order:
-            order.status = 'paid'
-            order.address = request.form.get('address')
-            order_number = order.id
+        if not order:
+            abort(404)
+
+        if order.user_id != current_user.id:
+            abort(403)
+
+        order.status = 'paid'
+        order.address = request.form.get('address')
+        order_number = order.id
     flash(f'Order №{order_number} has been paid', 'success')
     return redirect(url_for('main.show_orders'))
 
@@ -416,9 +422,14 @@ def cancel_order(order_id):
     order_number = ''
     with session_scope() as session:
         order_to_delete = session.query(Order).filter(Order.id == order_id).first()
-        if order_to_delete:
-            order_to_delete.status = 'rejected'
-            order_number = order_to_delete.id
+        if not order_to_delete:
+            abort(404)
+
+        if order_to_delete.user_id != current_user.id:
+            abort(403)
+
+        order_to_delete.status = 'rejected'
+        order_number = order_to_delete.id
     flash(f'Order №{order_number} has been rejected', 'danger')
     return redirect(url_for('main.show_orders'))
 
