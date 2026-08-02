@@ -58,6 +58,7 @@ class Order(Base):
     date: Mapped[datetime] = mapped_column(default=datetime.now)
     status: Mapped[str] = mapped_column(String(20))
     address: Mapped[str] = mapped_column(String(100))
+    customer_name: Mapped[str] = mapped_column(String(50), nullable=True)
 
     order_items: Mapped[list['OrderItem']] = relationship(back_populates='order')
     user: Mapped['User'] = relationship(back_populates='orders')

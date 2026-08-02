@@ -276,8 +276,11 @@ def show_basket():
 
     with session_scope() as session:
         order = session.query(Order).filter(Order.user_id == current_user.id, Order.status == 'new').first()
+        if order.status == 'new':
+            order = None
         if order:
             session.expunge(order)
+
         cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
             CartItem.user_id == current_user.id).all()
 
@@ -339,10 +342,38 @@ def show_orders():
                 {'order_id': order.id,
                  'status': order.status,
                  'date': order.date,
-                 'total_price': round(sum(item.price * item.quantity for item in order.order_items), 2)}
+                 'total_price': round(sum(item.price for item in order.order_items), 2)}
             )
     count = basket_calculating()
     return render_template('my_orders.html', orders_list=orders_list, count=count)
+
+
+@main_blueprint.route('/orders/<int:order_id>', methods=['GET'])
+@login_required
+def show_order(order_id):
+    order_items = []
+    with session_scope() as session:
+        order = session.query(Order).filter(Order.user_id == current_user.id, Order.id == order_id).first()
+        if not order:
+            abort(404)
+        for order_item in order.order_items:
+            order_items.append(
+                {
+                    'book_title': order_item.book.title,
+                    'count': order_item.quantity,
+                    'price': order_item.price
+                }
+            )
+        order_details = {
+            'order_number': order_id,
+            'date': order.date,
+            'status': order.status,
+            'total_price': round(sum(item['price'] for item in order_items), 2),
+            'customer_name': order.customer_name,
+            'address': order.address,
+            'phone_number': order.user.phone_number,
+        }
+    return render_template('show_order.html', order_items=order_items, order_details=order_details)
 
 
 @main_blueprint.route('/checkout', methods=['POST'])

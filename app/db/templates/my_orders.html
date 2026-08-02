@@ -16,13 +16,16 @@
 {% for order in orders_list %}
 <div class="container text-center">
     <div class="row row-cols-4">
-        <div class="col">{{ order['order_id'] }}</div>
         <div class="col">
             {% if order['status'] != 'new' %}
-                {{ order['status'] }}
+            <a class="text-danger fw-bold text-decoration-none" href="{{ url_for('main.show_order', order_id=order['order_id']) }}">➱ {{ order['order_id']
+            }}</a>
             {% else %}
-                <a href="{{ url_for('main.current_order', order_id=order['id']) }}">{{ order['status'] }}</a>
+            <a class="text-danger fw-bold text-decoration-none" href="{{ url_for('main.current_order', order_id=order['id']) }}">➱ {{ order['order_id'] }}</a>
             {% endif %}
+        </div>
+        <div class="col">
+            {{ order['status'] }}
         </div>
         <div class="col">{{ order['date'].strftime('%d.%m.%Y') }}</div>
         <div class="col">{{ order['total_price'] }}</div>

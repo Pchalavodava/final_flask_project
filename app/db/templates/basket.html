@@ -60,16 +60,6 @@
     {% endfor %}
 </form>
 
-{% if order %}
-<div class="d-flex flex-row justify-content-center">
-    <p class="">Order: {{ order.id }}</p>
-    <a class="btn btn-light" href="{{ url_for('main.current_order') }}">
-        Complete
-    </a>
-</div>
-{% endif %}
-
-
 <script>
     let selectAll = document.getElementById('select-all');
     let checkboxes = document.querySelectorAll('.book-checkbox');

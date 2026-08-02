@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Order {{ order_details['order_number'] }} details{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="text-center">Order {{ order_details['order_number'] }} details</h2>
+    <div class="text-center">
+        <p>Customer's name: <span class="fw-bold">{{ order_details['customer_name'] }}</span></p>
+        <p>Delivery to: <span class="fw-bold">{{ order_details['address'] }}</span></p>
+        <p>Customer's phone number: <span class="fw-bold">{{ order_details['phone_number'] }}</span></p>
+        <p>Order status: <span
+                class="fw-bold {% if order_details['status'] == 'paid' %}
+                text-success
+                {% elif order_details['status'] == 'rejected' %}
+                text-danger
+                {% else %}text-primary{% endif %}">
+            {{ order_details['status'] }}
+        </span>
+        </p>
+        <p>Payment date: <span class="fw-bold">{{ order_details['date'].strftime('%d.%m.%Y') }}</span></p>
+        <p>Total price: <span class="fw-bold">{{ order_details['total_price'] }}</span></p>
+    </div>
+    <div class="text-center border border-start-0 border-end-0
+    {% if order_details['status'] == 'paid' %}
+    border-success
+    {% elif order_details['status'] == 'rejected'%}
+    border-danger
+    {% else %}border-primary{% endif %}">
+        {% for item in order_items %}
+        <div class="row row-cols-3">
+            <div class="col">{{ item['book_title'] }}</div>
+            <div class="col">{{ item['count'] }}</div>
+            <div class="col">{{ item['price'] }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
