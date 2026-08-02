@@ -442,6 +442,7 @@ def to_pay(order_id):
 
         order.status = 'paid'
         order.address = request.form.get('address')
+        order.customer_name = request.form.get('name') + ' ' + request.form.get('surname')
         order_number = order.id
     flash(f'Order №{order_number} has been paid', 'success')
     return redirect(url_for('main.show_orders'))
