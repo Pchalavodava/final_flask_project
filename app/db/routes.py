@@ -276,9 +276,7 @@ def show_basket():
 
     with session_scope() as session:
         order = session.query(Order).filter(Order.user_id == current_user.id, Order.status == 'new').first()
-        if order.status == 'new':
-            order = None
-        if order:
+        if order is not None:
             session.expunge(order)
 
         cart_items = session.query(CartItem, Book).join(Book, CartItem.book_id == Book.id).filter(
@@ -419,9 +417,10 @@ def current_order():
                 "title": item.book.title,
                 "author": item.book.author,
                 "quantity": item.quantity,
-                "price": item.price,
+                "price": item.book.price,
+                "total_item_price": item.quantity * item.book.price
             })
-        total_price = sum(book["price"] for book in order_books)
+        total_price = sum(book["total_item_price"] for book in order_books)
         delivery_date = order.date + timedelta(days=2)
         user = order.user.phone_number
         return render_template("current_order.html", order_books=order_books, order_number=order.id,
