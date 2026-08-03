@@ -418,7 +418,7 @@ def current_order():
                 "author": item.book.author,
                 "quantity": item.quantity,
                 "price": item.book.price,
-                "total_item_price": item.quantity * item.book.price
+                "total_item_price": item.price
             })
         total_price = sum(book["total_item_price"] for book in order_books)
         delivery_date = order.date + timedelta(days=2)
