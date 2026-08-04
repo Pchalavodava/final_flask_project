@@ -184,6 +184,7 @@ def logout():
 
 @main_blueprint.route('/catalog', methods=['GET', 'POST'])
 def show_catalog():
+    print(f'User {current_user}')
     form = SearchForm()
     searching_book = ''
     if form.validate_on_submit():
@@ -219,6 +220,9 @@ def show_catalog():
 def show_book(book_id):
     form = AddToCartForm()
     if form.validate_on_submit():
+        if not current_user.is_authenticated:
+            flash('Please log in to add books to your basket', 'warning')
+            return redirect(url_for('main.login'))
         with session_scope() as session:
             item = session.query(CartItem).filter_by(
                 user_id=current_user.id,
@@ -411,6 +415,8 @@ def complete_the_order():
 def current_order():
     with session_scope() as session:
         order = session.query(Order).filter(Order.user_id == current_user.id, Order.status == 'new').first()
+        if not order:
+            abort(404)
         order_books = []
         for item in order.order_items:
             order_books.append({
